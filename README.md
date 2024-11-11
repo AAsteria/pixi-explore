@@ -1,3 +1,3 @@
 # pixi-explore
 
-`pixi-explore` folder path: /pixilang/pixilang3/examples/pixi-explore
+Some programming explorations of pixilang.
