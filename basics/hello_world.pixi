@@ -1,0 +1,19 @@
+while 1 // refresh loop
+{
+    scr = get_screen()
+    xsize = get_xsize(scr)
+    ysize = get_ysize(scr)
+    hxsize = xsize div 2
+    hysize = ysize div 2
+
+    clear(WHITE)
+    set_font_size(60)
+
+    // (0, 0) -> center
+    print("Hello World!", -hxsize, -hysize, RED, TOP | LEFT)
+    while(get_event()) 
+    {
+        if EVT[ EVT_TYPE ] == EVT_QUIT { halt }
+    }
+    frame()
+}
