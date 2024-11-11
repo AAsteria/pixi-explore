@@ -7,7 +7,6 @@ while 1 // refresh loop
     hysize = ysize div 2
 
     clear(WHITE)
-    set_font_size(60)
 
     // (0, 0) -> center
     print("Hello World!", -hxsize, -hysize, RED, TOP | LEFT)
