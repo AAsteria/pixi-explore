@@ -1,4 +1,4 @@
-include "show_log.pixi"
+include "../utils/show_log.pixi"
 
 ArSize = 8;
 num = 0;
