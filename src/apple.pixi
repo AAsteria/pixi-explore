@@ -1,0 +1,186 @@
+window(800, 600)
+
+scr = get_screen()
+xsize = get_xsize(scr)
+ysize = get_ysize(scr)
+hxsize = xsize div 2
+hysize = ysize div 2
+
+house_img = load("../resource/home.png")
+apple_img = load("../resource/apple.png")
+
+offset = 0
+x_offset = 0
+speed = 0
+
+curve_frequency = 0.1
+curve_amplitude = 50
+time = 0
+
+rotation_angle = 0
+rotation_radius = 100
+apple_x_offset = 500
+apple_move_left_speed = 1
+apple_direction = -1
+
+phase = 0
+delta = 1024 * 1
+play_phase = 0
+play_duration = 2000
+
+fn audio_callback(
+    $stream, 
+    $userdata, 
+    $channels, 
+    $frames, 
+    $output_time_in_system_ticks, 
+    $in_channels, 
+    $latency_in_frames
+) {
+    $time = play_phase / 22050.0
+    $frequency1 = 220.0 + 100.0 * sin($time * 0.5)
+    $frequency2 = 440.0 + 50.0 * cos($time * 0.3)
+    $delta1 = 2 * M_PI * $frequency1 / 22050
+    $delta2 = 2 * M_PI * $frequency2 / 22050
+
+    for ($i = 0; $i < $frames; $i = $i + 1) {
+        $p1 = (phase + $i * $delta1) % (2 * M_PI)
+        $p2 = (phase + $i * $delta2) % (2 * M_PI)
+        $sample = (sin($p1) + sin($p2)) * (32767 / 4)
+        $channels[0][$i] = $sample
+        $channels[1][$i] = $sample
+    }
+
+    phase = (phase + $frames * $delta1) % (2 * M_PI)
+    play_phase = play_phase + $frames
+
+    ret(1)
+}
+
+set_audio_callback(audio_callback, 0, 22050, INT16, 2)
+
+while 1 {
+    while (get_event()) {
+        if EVT[ EVT_TYPE ] == EVT_BUTTONDOWN {
+            key = EVT[ EVT_KEY ]
+            if key == KEY_LEFT {
+                x_offset = x_offset - 10
+            }
+            if key == KEY_RIGHT {
+                x_offset = x_offset + 10
+            }
+            if key == KEY_UP {
+                speed = 2
+            }
+            if key == KEY_DOWN {
+                speed = -2
+            }
+        }
+        if EVT[ EVT_TYPE ] == EVT_BUTTONUP {
+            key = EVT[ EVT_KEY ]
+            if key == KEY_UP || key == KEY_DOWN {
+                speed = 0
+            }
+        }
+    }
+
+    if x_offset > 200 {
+        x_offset = 200
+    }
+    if x_offset < -200 {
+        x_offset = -200
+    }
+
+    clear(BLUE)
+
+    fbox(-hxsize, 0, xsize, hysize, GREEN)
+
+    num_rectangles = 200
+    initial_width = 100
+    final_width = 300
+    initial_curb_width = 8
+    final_curb_width = 38
+    step_height = hysize / num_rectangles
+
+    offset = offset + speed
+    if (offset > step_height) {
+        offset = offset - step_height
+    }
+    if (offset < 0) {
+        offset = offset + step_height
+    }
+
+    time = time + 0.05
+
+    y_pos = -offset
+    for (i = 0; i < num_rectangles; i = i + 1) {
+        width = initial_width + ((final_width - initial_width) * i div num_rectangles) + 0.1 * i * i
+        curb_width = initial_curb_width + ((final_curb_width - initial_curb_width) * i div num_rectangles)
+
+        curve_factor = sin(time + i * curve_frequency) * curve_amplitude
+
+        x_offset_for_rectangle = x_offset + curve_factor
+
+        distance_factor = (i div num_rectangles) + 0.5
+        left_offset = x_offset_for_rectangle * distance_factor * 1.1
+        right_offset = x_offset_for_rectangle * distance_factor * 0.9
+
+        if x_offset_for_rectangle < 0 {
+            left_offset = x_offset_for_rectangle * distance_factor * 0.9
+            right_offset = x_offset_for_rectangle * distance_factor * 1.1
+        }
+
+        fbox(-width div 2 + x_offset_for_rectangle * distance_factor, y_pos, width, step_height + 1, #666666)
+
+        if ((i + (offset div step_height)) div 5) % 2 == 0 {
+            curb_color = WHITE
+        } else {
+            curb_color = BLACK
+        }
+        fbox((-width div 2) - curb_width + left_offset, y_pos, curb_width, step_height + 1, curb_color)
+        fbox((width div 2) + right_offset, y_pos, curb_width, step_height + 1, curb_color)
+
+        y_pos = y_pos + step_height
+        step_height = step_height + 0.05
+    }
+
+    black_square_size = xsize / 4.5
+    black_square_x = -black_square_size div 2
+    black_square_y = -hysize + 180
+    fbox(black_square_x, black_square_y, black_square_size, black_square_size, BLACK)
+
+    house_x = black_square_x - 240
+    house_y = black_square_y + black_square_size
+    pixi(house_img, house_x, house_y, WHITE, 0.6, 0.6)
+
+    center_x = black_square_x + black_square_size + apple_x_offset
+    center_y = black_square_y + black_square_size / 2
+
+    apple_x = center_x + cos(rotation_angle) * rotation_radius
+    apple_y = center_y + sin(rotation_angle) * rotation_radius
+
+    t = get_timer( 0 )
+    t2 = t / 500
+    pixi(apple_img, apple_x, apple_y, get_color( sin( t2 ) * 200, cos( t2 ) * 100, sin( t2 * 2 ) * 50), 0.5, 0.5)
+
+    rotation_angle = rotation_angle + 0.05
+    if rotation_angle > 2 * 3.1415926535 {
+        rotation_angle = rotation_angle - 2 * 3.1415926535
+    }
+
+    apple_x_offset = apple_x_offset + (apple_move_left_speed * apple_direction)
+    if apple_x_offset < -900 {
+        apple_direction = 1
+    }
+    if apple_x_offset > 900 {
+        apple_direction = -1
+    }
+
+    frame()
+    while (get_event()) {
+        if EVT[EVT_TYPE] == EVT_QUIT { halt }
+    }
+}
+
+remove_with_alpha(house_img)
+remove_with_alpha(apple_img)
